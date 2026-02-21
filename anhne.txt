@@ -1,0 +1,166 @@
+-- 1. Khởi tạo ScreenGui & MainFrame
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "ChiiHauuMenu"
+screenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+screenGui.ResetOnSpawn = false
+
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 220, 0, 430) 
+mainFrame.Position = UDim2.new(0.5, -110, 0.5, -215)
+mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+mainFrame.Parent = screenGui
+Instance.new("UICorner", mainFrame)
+
+-- 2. Nút Bật/Tắt Menu
+local toggleButton = Instance.new("TextButton")
+toggleButton.Size = UDim2.new(0, 80, 0, 30)
+toggleButton.Position = UDim2.new(0, 10, 0, 10)
+toggleButton.Text = "Menu: ON"
+toggleButton.Parent = screenGui
+Instance.new("UICorner", toggleButton)
+
+toggleButton.MouseButton1Click:Connect(function()
+    mainFrame.Visible = not mainFrame.Visible
+    toggleButton.Text = mainFrame.Visible and "Menu: ON" or "Menu: OFF"
+end)
+
+-- 3. Tiêu đề & Level
+local title = Instance.new("TextLabel")
+title.Text = "CHII HAUU HUB"
+title.Size = UDim2.new(1, 0, 0, 40)
+title.TextColor3 = Color3.fromRGB(0, 170, 255)
+title.BackgroundTransparency = 1
+title.Parent = mainFrame
+
+local lvLabel = Instance.new("TextLabel")
+lvLabel.Size = UDim2.new(0.9, 0, 0, 30)
+lvLabel.Position = UDim2.new(0.05, 0, 0.1, 0)
+lvLabel.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+lvLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
+lvLabel.Text = "Level: " .. game.Players.LocalPlayer.Data.Level.Value
+lvLabel.Parent = mainFrame
+Instance.new("UICorner", lvLabel)
+
+-- Cập nhật Level khi đổi số
+game.Players.LocalPlayer.Data.Level.Changed:Connect(function()
+    lvLabel.Text = "Level: " .. game.Players.LocalPlayer.Data.Level.Value
+end)
+
+-- 4. Hàm tạo nút nhanh
+local function CreateButton(text, pos)
+    local btn = Instance.new("TextButton")
+    btn.Text = text
+    btn.Size = UDim2.new(0.9, 0, 0, 40)
+    btn.Position = pos
+    btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Parent = mainFrame
+    Instance.new("UICorner", btn)
+    return btn
+end
+
+local farmButton = CreateButton("Auto Farm: OFF", UDim2.new(0.05, 0, 0.22, 0))
+local questBtn = CreateButton("Auto Quest: OFF", UDim2.new(0.05, 0, 0.35, 0))
+local airButton = CreateButton("Farm Trên Không: OFF", UDim2.new(0.05, 0, 0.48, 0))
+local fastBtn = CreateButton("Siêu Đánh Nhanh: OFF", UDim2.new(0.05, 0, 0.61, 0))
+local hakiButton = CreateButton("Auto Haki: OFF", UDim2.new(0.05, 0, 0.74, 0))
+
+-- BIẾN TRẠNG THÁI
+local _G_AutoFarm = false
+local _G_AirFarm = false
+local _G_FastAttack = false
+local _G_AutoQuest = false
+local _G_AutoHaki = false
+local player = game.Players.LocalPlayer
+
+-- 5. HÀM CHECK NHIỆM VỤ THEO CẤP (Sea 1)
+function GetQuestName()
+    local lv = player.Data.Level.Value
+    if lv >= 0 and lv < 10 then return "BanditQuest1", "Bandit", 1
+    elseif lv >= 10 and lv < 15 then return "MonkeyQuest1", "Monkey", 1
+    elseif lv >= 15 and lv < 30 then return "MonkeyQuest1", "Gorilla", 2
+    elseif lv >= 30 and lv < 40 then return "PirateIslandQuest1", "Pirate", 1
+    elseif lv >= 40 and lv < 60 then return "PirateIslandQuest1", "Brute", 2
+    elseif lv >= 60 and lv < 75 then return "DesertQuest", "Desert Bandit", 1
+    elseif lv >= 75 and lv < 90 then return "DesertQuest", "Desert Officer", 2
+    -- Bạn có thể thêm các đảo tiếp theo tại đây
+    else return "BanditQuest1", "Bandit", 1
+    end
+end
+
+-- 6. VÒNG LẶP CHÍNH
+spawn(function()
+    while task.wait() do
+        if _G_AutoFarm then
+            pcall(function()
+                -- Tự động nhận Quest
+                if _G_AutoQuest then
+                    local questUI = player.PlayerGui.Main:FindFirstChild("Quest")
+                    if questUI and not questUI.Visible then
+                        local qName, mName, qNum = GetQuestName()
+                        game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("StartQuest", qName, qNum)
+                    end
+                end
+
+                -- Tìm quái
+                local Monster = workspace.Enemies:FindFirstChildOfClass("Model")
+                if Monster and Monster:FindFirstChild("HumanoidRootPart") then
+                    -- Bay tới quái
+                    local targetPos = Monster.HumanoidRootPart.CFrame
+                    if _G_AirFarm then
+                        player.Character.HumanoidRootPart.CFrame = targetPos * CFrame.new(0, 15, 0)
+                    else
+                        player.Character.HumanoidRootPart.CFrame = targetPos * CFrame.new(0, 0, 3)
+                    end
+
+                    -- Đánh siêu nhanh
+                    if _G_FastAttack then
+                        game:GetService("ReplicatedStorage").Remotes.Validator:FireServer(math.huge)
+                        local tool = player.Character:FindFirstChildOfClass("Tool")
+                        if tool then tool:Activate() end
+                    end
+                end
+            end)
+        end
+    end
+end)
+
+-- 7. TỰ ĐỘNG HAKI
+spawn(function()
+    while task.wait(1) do
+        if _G_AutoHaki and not player.Character:FindFirstChild("HasBuso") then
+            game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("Buso")
+        end
+    end
+end)
+
+-- 8. SỰ KIỆN BẤM NÚT
+farmButton.MouseButton1Click:Connect(function()
+    _G_AutoFarm = not _G_AutoFarm
+    farmButton.Text = _G_AutoFarm and "Auto Farm: ON" or "Auto Farm: OFF"
+    farmButton.BackgroundColor3 = _G_AutoFarm and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(60, 60, 60)
+end)
+
+questBtn.MouseButton1Click:Connect(function()
+    _G_AutoQuest = not _G_AutoQuest
+    questBtn.Text = _G_AutoQuest and "Auto Quest: ON" or "Auto Quest: OFF"
+    questBtn.BackgroundColor3 = _G_AutoQuest and Color3.fromRGB(0, 100, 200) or Color3.fromRGB(60, 60, 60)
+end)
+
+airButton.MouseButton1Click:Connect(function()
+    _G_AirFarm = not _G_AirFarm
+    airButton.Text = _G_AirFarm and "Farm Trên Không: ON" or "Farm Trên Không: OFF"
+    airButton.BackgroundColor3 = _G_AirFarm and Color3.fromRGB(170, 85, 0) or Color3.fromRGB(60, 60, 60)
+end)
+
+fastBtn.MouseButton1Click:Connect(function()
+    _G_FastAttack = not _G_FastAttack
+    fastBtn.Text = _G_FastAttack and "Siêu Đánh Nhanh: ON" or "Siêu Đánh Nhanh: OFF"
+    fastBtn.BackgroundColor3 = _G_FastAttack and Color3.fromRGB(255, 0, 0) or Color3.fromRGB(60, 60, 60)
+end)
+
+hakiButton.MouseButton1Click:Connect(function()
+    _G_AutoHaki = not _G_AutoHaki
+    hakiButton.Text = _G_AutoHaki and "Auto Haki: ON" or "Auto Haki: OFF"
+    hakiButton.BackgroundColor3 = _G_AutoHaki and Color3.fromRGB(100, 100, 100) or Color3.fromRGB(60, 60, 60)
+end)
